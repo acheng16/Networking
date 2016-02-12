@@ -1,0 +1,61 @@
+# Name: Andrew Cheng
+
+# Echo client program
+
+import socket # For implementing sockets
+import sys  # For exit and command line arguments
+import os.path # For checking folders and files
+import errno # For handling errors
+
+if len(sys.argv) != 4:  # Check if the number of command line arguments are correct
+	print ('Invalid number of arguments. Please use format: "ftpc.py <remote-IP> <remote-port> <local-file-to-transfer>"')
+	sys.exit();
+
+HOST = sys.argv[1]    # The remote host
+PORT = int(sys.argv[2])              # The same port as used by the server
+filename = sys.argv[3]  # The name of the file to be sent
+
+
+try:
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # create a TCP socket
+except (socket.error, msg):
+	print ('Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message: ' + msg[1])
+	# Let user know there is an error in 
+	sys.exit();
+print ('Socket Created')  # Let user know socket has been created successfully
+
+s.connect((HOST, PORT))  # Connect to the provided host and port number
+print ('Socket connected to ' + HOST + ' on port ' + str(PORT)) # Let user know client has connected to server
+
+if not os.path.exists(filename):
+	print ('Error: File does not exist. Please enter a valid file name.')
+	# Let user know if know if no such file exists
+	sys.exit();
+
+size = os.path.getsize(filename)
+# Get size of file
+filename = filename.rjust(20)
+# Make filename 20 bytes
+byte_size = size.to_bytes(4, byteorder = 'big')
+# Convert size to bytes in Big Endian
+byte_filename = filename.encode()
+# Encode filename to bytes
+s.send(byte_size)  # Send size of file in bytes
+print ('File size sent.')
+# Let user know file size has been sent
+
+s.send(byte_filename)  # Send name of file in bytes
+print ('File name sent.')
+# Let user know file name has been sent
+readFile = open(filename.lstrip(), 'rb')
+# Open file to read in binary mode
+
+data = readFile.read(900)
+while data != b"":  # Keep reading and sending read data to server until the end of the file
+	s.send(data)
+	data = readFile.read(900)
+readFile.close() # Close file
+s.close() # Close socket
+
+print ("Transfer Complete. Socket Closed.")
+
